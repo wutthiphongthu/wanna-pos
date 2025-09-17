@@ -1,0 +1,14 @@
+abstract class AuthEvent {}
+
+class CheckAuthStatus extends AuthEvent {}
+
+class LoginRequested extends AuthEvent {
+  final String username;
+  final String password;
+
+  LoginRequested({required this.username, required this.password});
+}
+
+class LogoutRequested extends AuthEvent {}
+
+class AuthTokenExpired extends AuthEvent {}

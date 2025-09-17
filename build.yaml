@@ -1,0 +1,21 @@
+targets:
+  $default:
+    builders:
+      floor_generator|floor_generator:
+        options:
+          # Floor database options
+          database_name: "ppos_database.db"
+          database_version: 1
+
+      injectable_generator|injectable_builder:
+        options:
+          # Injectable options
+          auto_register: true
+          class_name_pattern: ".*RepositoryImpl$"
+          file_name_pattern: "_injectable\\.config\\.dart$"
+
+      json_serializable|json_serializable:
+        options:
+          # JSON serialization options
+          explicit_to_json: true
+          include_if_null: false
