@@ -6,6 +6,8 @@ import '../bloc/product_state.dart';
 import '../models/product_model.dart';
 import '../../categories/widgets/category_quick_dialog.dart';
 import '../../categories/models/category_model.dart';
+import '../../../core/utils/barcode_service.dart';
+import '../../../core/di/injector.dart';
 
 class ProductFormPage extends StatefulWidget {
   final ProductModel? product;
@@ -453,10 +455,15 @@ class _ProductFormPageState extends State<ProductFormPage> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _barcodeController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'บาร์โค้ด',
                 hintText: '1234567890123',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  onPressed: _scanBarcode,
+                  tooltip: 'สแกนบาร์โค้ด',
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -588,6 +595,33 @@ class _ProductFormPageState extends State<ProductFormPage> {
         });
       },
     );
+  }
+
+  Future<void> _scanBarcode() async {
+    try {
+      final barcodeService = getIt<BarcodeService>();
+      final result = await barcodeService.scanBarcode(context);
+
+      if (result != null) {
+        setState(() {
+          _barcodeController.text = result;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('สแกนบาร์โค้ดสำเร็จ: $result'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เกิดข้อผิดพลาดในการสแกน: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Color _parseCategoryColor(String? colorString) {
