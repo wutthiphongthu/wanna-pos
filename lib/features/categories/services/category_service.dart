@@ -1,13 +1,20 @@
 import 'package:injectable/injectable.dart';
+
+import '../../../core/sync/sync_constants.dart';
 import '../models/category_model.dart';
 import '../../../database/app_database.dart';
 import '../../../database/entities/category_entity.dart';
+import '../../../features/auth/services/auth_service_interface.dart';
+import 'category_service_interface.dart';
 
-@injectable
-class CategoryService {
+@Injectable(as: ICategoryService)
+class CategoryService implements ICategoryService {
   final AppDatabase _database;
+  final IAuthService _authService;
 
-  CategoryService(this._database);
+  CategoryService(this._database, this._authService);
+
+  Future<int> _storeId() => _authService.getCurrentStoreId();
 
   // ข้อมูล mock สำหรับ seed database
   final List<CategoryModel> _mockCategories = [
@@ -63,21 +70,24 @@ class CategoryService {
     ),
   ];
 
-  // เริ่มต้นข้อมูล (seed database ถ้ายังไม่มีข้อมูล)
+  // เริ่มต้นข้อมูล (seed database ถ้ายังไม่มีข้อมูล) ตามร้าน
   Future<void> _seedDatabase() async {
-    final existingCategories = await _database.categoryDao.getAllCategories();
+    final storeId = await _storeId();
+    final existingCategories = await _database.categoryDao.getAllCategoriesByStore(storeId);
     if (existingCategories.isEmpty) {
       for (final category in _mockCategories) {
-        final entity = CategoryEntity.fromModel(category);
+        final withStore = category.copyWith(storeId: storeId);
+        final entity = CategoryEntity.fromModel(withStore);
         await _database.categoryDao.insertCategory(entity);
       }
     }
   }
 
-  // ดึงหมวดหมู่ทั้งหมด
+  // ดึงหมวดหมู่ทั้งหมด (ตามร้านที่ล็อกอิน)
   Future<List<CategoryModel>> getAllCategories() async {
     await _seedDatabase();
-    final entities = await _database.categoryDao.getAllCategories();
+    final storeId = await _storeId();
+    final entities = await _database.categoryDao.getAllCategoriesByStore(storeId);
     return entities
         .map((entity) => CategoryModel.fromMap(entity.toModelMap()))
         .toList();
@@ -86,7 +96,8 @@ class CategoryService {
   // ดึงหมวดหมู่ที่เปิดใช้งาน
   Future<List<CategoryModel>> getActiveCategories() async {
     await _seedDatabase();
-    final entities = await _database.categoryDao.getActiveCategories();
+    final storeId = await _storeId();
+    final entities = await _database.categoryDao.getActiveCategoriesByStore(storeId);
     return entities
         .map((entity) => CategoryModel.fromMap(entity.toModelMap()))
         .toList();
@@ -94,7 +105,8 @@ class CategoryService {
 
   // ดึงหมวดหมู่ตาม ID
   Future<CategoryModel?> getCategoryById(int id) async {
-    final entity = await _database.categoryDao.getCategoryById(id);
+    final storeId = await _storeId();
+    final entity = await _database.categoryDao.getCategoryById(storeId, id);
     if (entity != null) {
       return CategoryModel.fromMap(entity.toModelMap());
     }
@@ -103,22 +115,25 @@ class CategoryService {
 
   // ดึงหมวดหมู่ตามชื่อ
   Future<CategoryModel?> getCategoryByName(String name) async {
-    final entity = await _database.categoryDao.getCategoryByName(name);
+    final storeId = await _storeId();
+    final entity = await _database.categoryDao.getCategoryByName(storeId, name);
     if (entity != null) {
       return CategoryModel.fromMap(entity.toModelMap());
     }
     return null;
   }
 
-  // เพิ่มหมวดหมู่ใหม่
+  // เพิ่มหมวดหมู่ใหม่ (ใช้ร้านปัจจุบัน)
   Future<CategoryModel> createCategory(CategoryModel category) async {
+    final storeId = await _storeId();
     final now = DateTime.now();
     final newCategory = category.copyWith(
+      storeId: storeId,
       createdAt: now,
       updatedAt: now,
     );
 
-    final entity = CategoryEntity.fromModel(newCategory);
+    final entity = CategoryEntity.fromModel(newCategory, syncStatus: SyncStatus.dirty);
     final id = await _database.categoryDao.insertCategory(entity);
 
     return newCategory.copyWith(id: id);
@@ -131,20 +146,35 @@ class CategoryService {
     }
 
     final updatedCategory = category.copyWith(updatedAt: DateTime.now());
-    final entity = CategoryEntity.fromModel(updatedCategory);
+    final entity = CategoryEntity.fromModel(updatedCategory, syncStatus: SyncStatus.dirty);
 
     await _database.categoryDao.updateCategory(entity);
     return updatedCategory;
   }
 
-  // ลบหมวดหมู่
+  // ลบหมวดหมู่ (ถ้ามี remote_id จะ mark pending_delete รอซิงก์)
   Future<void> deleteCategory(int id) async {
-    await _database.categoryDao.deleteCategoryById(id);
+    final storeId = await _storeId();
+    final entity = await _database.categoryDao.getCategoryById(storeId, id);
+    if (entity == null) return;
+    final rid = entity.remoteId;
+    if (rid != null && rid.isNotEmpty) {
+      await _database.categoryDao.updateCategory(
+        entity.copyWith(
+          syncStatus: SyncStatus.pendingDelete,
+          isActive: false,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+    } else {
+      await _database.categoryDao.deleteCategoryById(id);
+    }
   }
 
   // เปิด/ปิดใช้งานหมวดหมู่
   Future<CategoryModel> toggleCategoryStatus(int id) async {
-    final entity = await _database.categoryDao.getCategoryById(id);
+    final storeId = await _storeId();
+    final entity = await _database.categoryDao.getCategoryById(storeId, id);
     if (entity == null) {
       throw Exception('ไม่พบหมวดหมู่ที่ต้องการเปลี่ยนสถานะ');
     }
@@ -154,8 +184,7 @@ class CategoryService {
 
     await _database.categoryDao.updateCategoryStatus(id, newStatus, updatedAt);
 
-    // ดึงข้อมูลใหม่เพื่อคืนค่า
-    final updatedEntity = await _database.categoryDao.getCategoryById(id);
+    final updatedEntity = await _database.categoryDao.getCategoryById(storeId, id);
     return CategoryModel.fromMap(updatedEntity!.toModelMap());
   }
 
@@ -165,8 +194,9 @@ class CategoryService {
       return getAllCategories();
     }
 
+    final storeId = await _storeId();
     final searchQuery = '%$query%';
-    final entities = await _database.categoryDao.searchCategories(searchQuery);
+    final entities = await _database.categoryDao.searchCategoriesByStore(storeId, searchQuery);
     return entities
         .map((entity) => CategoryModel.fromMap(entity.toModelMap()))
         .toList();

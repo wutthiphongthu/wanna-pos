@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "780928801781",
+    "project_id": "wanna-app-d96d0",
+    "storage_bucket": "wanna-app-d96d0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:780928801781:android:dfb025be712fd4333c5ebc",
+        "android_client_info": {
+          "package_name": "com.dohome.pos.ppos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgU5EPNne-vb7qX0Szcen3Is8Q6gs9eCU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

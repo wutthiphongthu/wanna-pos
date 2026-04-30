@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 class POSHeader extends StatelessWidget {
-  const POSHeader({super.key});
+  final VoidCallback? onMenuTap;
+
+  const POSHeader({super.key, this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
-          return Container(
+    return Container(
         height: 70,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
@@ -23,21 +25,19 @@ class POSHeader extends StatelessWidget {
         children: [
           // Menu Icon
           IconButton(
-            onPressed: () {
-              // TODO: Implement menu drawer
-            },
+            onPressed: onMenuTap,
             icon: const Icon(Icons.menu, size: 28),
           ),
 
           const SizedBox(width: 16),
 
           // Logo
-          const Text(
+          Text(
             'Lorem',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
 
@@ -66,30 +66,34 @@ class POSHeader extends StatelessWidget {
           const SizedBox(width: 24),
 
           // Dine In Status
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.blue[200]!),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.restaurant, color: Colors.blue, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'Dine In',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.w600,
-                  ),
+          Builder(
+            builder: (context) {
+              final scheme = Theme.of(context).colorScheme;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: scheme.primary.withValues(alpha: 0.5)),
                 ),
-                const SizedBox(width: 4),
-                const Icon(Icons.keyboard_arrow_down,
-                    color: Colors.blue, size: 20),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.restaurant, color: scheme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Dine In',
+                      style: TextStyle(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.keyboard_arrow_down, color: scheme.primary, size: 20),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),

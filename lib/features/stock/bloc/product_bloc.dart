@@ -43,6 +43,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<CreateProductEvent>(_onCreateProduct);
     on<UpdateProductEvent>(_onUpdateProduct);
     on<DeleteProductEvent>(_onDeleteProduct);
+    on<DeleteProductsEvent>(_onDeleteProducts);
     on<LoadLowStockProducts>(_onLoadLowStockProducts);
     on<UpdateStockQuantity>(_onUpdateStockQuantity);
     on<ToggleProductStatus>(_onToggleProductStatus);
@@ -188,6 +189,36 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         ));
       },
     );
+  }
+
+  Future<void> _onDeleteProducts(
+    DeleteProductsEvent event,
+    Emitter<ProductState> emit,
+  ) async {
+    if (event.products.isEmpty) return;
+    String? failureMessage;
+    for (final product in event.products) {
+      final result = await _deleteProduct(product);
+      result.fold(
+        (failure) => failureMessage = failure.message,
+        (_) => null,
+      );
+      if (failureMessage != null) break;
+    }
+    if (failureMessage != null) {
+      emit(ProductOperationFailure(
+        message: failureMessage!,
+        products:
+            state is ProductLoaded ? (state as ProductLoaded).products : [],
+      ));
+      return;
+    }
+    add(const LoadAllProducts());
+    emit(ProductOperationSuccess(
+      message: 'ลบสินค้า ${event.products.length} รายการเรียบร้อยแล้ว',
+      products:
+          state is ProductLoaded ? (state as ProductLoaded).products : [],
+    ));
   }
 
   Future<void> _onLoadLowStockProducts(

@@ -7,41 +7,33 @@ import '../../../categories/bloc/category_bloc.dart';
 import '../../../categories/pages/category_management_page.dart';
 
 class BackendMainPage extends StatelessWidget {
-  const BackendMainPage({super.key});
+  final VoidCallback? onMenuTap;
+  final VoidCallback? onNavigateToStock;
+
+  const BackendMainPage({
+    super.key,
+    this.onMenuTap,
+    this.onNavigateToStock,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text(
-          'จัดการหลังบ้าน',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.category),
-            onPressed: () =>
-                CategoryDialogHelper.showCategoryManagementDialog(context),
-            tooltip: 'จัดการหมวดหมู่ด่วน',
-          ),
-          const LogoutMenu(),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Welcome Section
-              Container(
+    return Container(
+      color: Colors.grey[50],
+      child: SafeArea(
+        child: Column(
+          children: [
+            _BackendHeader(
+              onMenuTap: onMenuTap,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Welcome Section
+                    Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
@@ -95,10 +87,8 @@ class BackendMainPage extends StatelessWidget {
                       title: 'จัดการสินค้า',
                       subtitle: 'เพิ่ม/แก้ไข/ลบสินค้า',
                       icon: Icons.inventory,
-                      color: Colors.blue,
-                      onTap: () {
-                        Navigator.pushNamed(context, '/stock');
-                      },
+                      color: Theme.of(context).colorScheme.primary,
+                      onTap: onNavigateToStock ?? () {},
                     ),
                     _ManagementCard(
                       title: 'จัดการหมวดหมู่',
@@ -163,7 +153,7 @@ class BackendMainPage extends StatelessWidget {
                       icon: const Icon(Icons.backup),
                       label: const Text('สำรองข้อมูล'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -195,6 +185,59 @@ class BackendMainPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+      ],
+    ),
+  ),
+);
+  }
+}
+
+class _BackendHeader extends StatelessWidget {
+  final VoidCallback? onMenuTap;
+
+  const _BackendHeader({this.onMenuTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.green,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onMenuTap,
+            icon: const Icon(Icons.menu, color: Colors.white, size: 28),
+          ),
+          const Expanded(
+            child: Text(
+              'จัดการหลังบ้าน',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.category, color: Colors.white),
+            onPressed: () =>
+                CategoryDialogHelper.showCategoryManagementDialog(context),
+            tooltip: 'จัดการหมวดหมู่ด่วน',
+          ),
+          const LogoutMenu(),
+          const SizedBox(width: 8),
+        ],
       ),
     );
   }

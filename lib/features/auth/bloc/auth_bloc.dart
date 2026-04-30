@@ -1,18 +1,55 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import '../services/auth_service.dart';
+
+import '../../../core/sync/sync_manager.dart';
+import '../services/auth_service_interface.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 @injectable
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthService _authService;
+  final IAuthService _authService;
+  final SyncManager _syncManager;
 
-  AuthBloc(this._authService) : super(AuthInitial()) {
+  AuthBloc(this._authService, this._syncManager) : super(AuthInitial()) {
     on<CheckAuthStatus>(_onCheckAuthStatus);
     on<LoginRequested>(_onLoginRequested);
     on<LogoutRequested>(_onLogoutRequested);
     on<AuthTokenExpired>(_onAuthTokenExpired);
+    on<StoreCreated>(_onStoreCreated);
+  }
+
+  Future<void> _onStoreCreated(StoreCreated event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final userData = await _authService.getCurrentUser();
+      if (userData == null) {
+        emit(AuthUnauthenticated());
+        return;
+      }
+      final hasStore = await _authService.hasStore();
+      if (hasStore) {
+        emit(AuthAuthenticated(
+          userId: userData['userId']!,
+          username: userData['userId']!,
+          userRole: userData['userRole']!,
+          userEmail: userData['userEmail']!,
+          userFullName: userData['userFullName']!,
+          storeId: userData['storeId'] ?? '1',
+          storeName: userData['storeName'] ?? '',
+        ));
+        await _syncManager.syncAllOnLogin();
+      } else {
+        emit(AuthNeedsStore(
+          userId: userData['userId']!,
+          userEmail: userData['userEmail'] ?? '',
+          userFullName: userData['userFullName'] ?? '',
+          userRole: userData['userRole'] ?? 'owner',
+        ));
+      }
+    } catch (_) {
+      emit(AuthError(message: 'เกิดข้อผิดพลาด'));
+    }
   }
 
   Future<void> _onCheckAuthStatus(
@@ -25,13 +62,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (isLoggedIn) {
         final userData = await _authService.getCurrentUser();
         if (userData != null) {
-          emit(AuthAuthenticated(
-            userId: userData['userId']!,
-            username: userData['userId']!, // ใช้ userId แทน username ชั่วคราว
-            userRole: userData['userRole']!,
-            userEmail: userData['userEmail']!,
-            userFullName: userData['userFullName']!,
-          ));
+          final hasStore = await _authService.hasStore();
+          if (hasStore) {
+            emit(AuthAuthenticated(
+              userId: userData['userId']!,
+              username: userData['userId']!,
+              userRole: userData['userRole']!,
+              userEmail: userData['userEmail']!,
+              userFullName: userData['userFullName']!,
+              storeId: userData['storeId'] ?? '1',
+              storeName: userData['storeName'] ?? '',
+            ));
+            await _syncManager.syncAllOnLogin();
+          } else {
+            emit(AuthNeedsStore(
+              userId: userData['userId']!,
+              userEmail: userData['userEmail'] ?? '',
+              userFullName: userData['userFullName'] ?? '',
+              userRole: userData['userRole'] ?? 'owner',
+            ));
+          }
         } else {
           emit(AuthUnauthenticated());
         }
@@ -52,13 +102,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (result['success'] == true) {
         final userData = result['data'] as Map<String, dynamic>;
-        emit(AuthAuthenticated(
-          userId: userData['userId']!,
-          username: userData['username']!,
-          userRole: userData['userRole']!,
-          userEmail: userData['userEmail']!,
-          userFullName: userData['userFullName']!,
-        ));
+        final hasStore = await _authService.hasStore();
+        if (hasStore) {
+          emit(AuthAuthenticated(
+            userId: userData['userId']!,
+            username: userData['username']!,
+            userRole: userData['userRole']!,
+            userEmail: userData['userEmail']!,
+            userFullName: userData['userFullName']!,
+            storeId: userData['storeId'] ?? '1',
+            storeName: userData['storeName'] ?? '',
+          ));
+          await _syncManager.syncAllOnLogin();
+        } else {
+          emit(AuthNeedsStore(
+            userId: userData['userId']!,
+            userEmail: userData['userEmail']?.toString() ?? '',
+            userFullName: userData['userFullName']?.toString() ?? '',
+            userRole: userData['userRole']?.toString() ?? 'owner',
+          ));
+        }
       } else {
         emit(AuthError(message: result['message'] ?? 'เข้าสู่ระบบไม่สำเร็จ'));
       }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/utils/theme.dart';
 import '../bloc/category_bloc.dart';
 import '../bloc/category_event.dart';
 import '../bloc/category_state.dart';
@@ -20,7 +21,7 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
   final _descriptionController = TextEditingController();
   
   String _selectedIcon = 'category';
-  Color _selectedColor = Colors.blue;
+  Color _selectedColor = AppTheme.primaryColor;
   bool _isActive = true;
   bool _isLoading = false;
 
@@ -38,9 +39,9 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
   ];
 
   final List<Color> _availableColors = [
-    Colors.blue,
+    AppTheme.primaryColor,
     Colors.green,
-    Colors.orange,
+    AppTheme.secondaryColor,
     Colors.purple,
     Colors.red,
     Colors.teal,
@@ -70,7 +71,7 @@ class _CategoryFormDialogState extends State<CategoryFormDialog> {
     _nameController.text = category.name;
     _descriptionController.text = category.description;
     _selectedIcon = category.iconName ?? 'category';
-    _selectedColor = _parseColor(category.color) ?? Colors.blue;
+    _selectedColor = _parseColor(category.color) ?? AppTheme.primaryColor;
     _isActive = category.isActive;
   }
 

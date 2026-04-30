@@ -28,12 +28,12 @@ class ModeSelectionPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Header
-                const Text(
+                Text(
                   'เลือกโหมดการทำงาน',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
 
@@ -60,7 +60,7 @@ class ModeSelectionPage extends StatelessWidget {
                             title: 'หน้าขาย',
                             subtitle: 'ระบบขายสินค้า',
                             icon: Icons.point_of_sale,
-                            color: Colors.blue,
+                            color: Theme.of(context).colorScheme.primary,
                             onTap: () {
                               Navigator.pushReplacementNamed(context, '/pos');
                             },

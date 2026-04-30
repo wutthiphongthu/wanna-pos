@@ -5,7 +5,7 @@ class AppConstants {
 
   // Database
   static const String databaseName = 'ppos_database.db';
-  static const int databaseVersion = 1;
+  static const int databaseVersion = 7;
 
   // API
   static const String baseUrl = 'https://api.dohome.com';
@@ -17,6 +17,8 @@ class AppConstants {
   static const String userRoleKey = 'user_role';
   static const String userEmailKey = 'user_email';
   static const String userFullNameKey = 'user_full_name';
+  static const String storeIdKey = 'store_id';
+  static const String storeNameKey = 'store_name';
 
   // Error Messages
   static const String networkErrorMessage = 'Network error occurred';
@@ -61,6 +63,19 @@ class AppConstants {
     'Gold',
     'Platinum',
   ];
+
+  // Points / Loyalty
+  /// 1 คะแนนต่อจำนวนบาทที่ซื้อ (เช่น 10 = 1 คะแนนต่อ 10 บาท)
+  static const int pointsPerBaht = 10;
+  /// จำนวนบาทส่วนลดต่อ 1 คะแนนเมื่อแลก (เช่น 1 = 1 คะแนนแลก 1 บาท)
+  static const double bahtPerPoint = 1.0;
+  /// คูณคะแนนตามระดับสมาชิก: Bronze=1, Silver=1.2, Gold=1.5, Platinum=2
+  static const Map<String, double> membershipPointMultiplier = {
+    'Bronze': 1.0,
+    'Silver': 1.2,
+    'Gold': 1.5,
+    'Platinum': 2.0,
+  };
 
   // Product Categories
   static const List<String> productCategories = [

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/utils/number_formatter.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
 import 'product_list_page.dart';
 import '../../auth/widgets/logout_menu.dart';
 import '../../categories/widgets/category_quick_dialog.dart';
+import '../services/product_import_export_service.dart';
 
 class StockMainPage extends StatefulWidget {
-  const StockMainPage({super.key});
+  final VoidCallback? onMenuTap;
+
+  const StockMainPage({super.key, this.onMenuTap});
 
   @override
   State<StockMainPage> createState() => _StockMainPageState();
@@ -18,6 +22,7 @@ class _StockMainPageState extends State<StockMainPage> {
   int _selectedIndex = 0;
   late ProductBloc _bloc;
   late List<Widget> _pages;
+  final _importExport = ProductImportExportService();
 
   final List<BottomNavigationBarItem> _bottomNavItems = [
     const BottomNavigationBarItem(
@@ -76,37 +81,115 @@ class _StockMainPageState extends State<StockMainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_getPageTitle(_selectedIndex)),
-        actions: [
+    return Column(
+      children: [
+        _StockHeader(
+          title: _getPageTitle(_selectedIndex),
+          onMenuTap: widget.onMenuTap,
+          onExport: () async {
+            await _importExport.exportAllProducts(context);
+          },
+          onImport: () async {
+            final count = await _importExport.importFromExcel(context);
+            if (count > 0) {
+              _refreshCurrentPage();
+            }
+          },
+          onRefresh: _refreshCurrentPage,
+          onCategory: () =>
+              CategoryDialogHelper.showCategoryManagementDialog(context),
+        ),
+        Expanded(
+          child: IndexedStack(
+            index: _selectedIndex,
+            children: _pages,
+          ),
+        ),
+        BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          items: _bottomNavItems,
+          type: BottomNavigationBarType.fixed,
+        ),
+      ],
+    );
+  }
+}
+
+class _StockHeader extends StatelessWidget {
+  final String title;
+  final VoidCallback? onMenuTap;
+  final VoidCallback? onExport;
+  final VoidCallback? onImport;
+  final VoidCallback? onRefresh;
+  final VoidCallback? onCategory;
+
+  const _StockHeader({
+    required this.title,
+    this.onMenuTap,
+    this.onExport,
+    this.onImport,
+    this.onRefresh,
+    this.onCategory,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _refreshCurrentPage(),
+            onPressed: onMenuTap,
+            icon: const Icon(Icons.menu, color: Colors.white, size: 28),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.category_outlined),
-            onPressed: () =>
-                CategoryDialogHelper.showCategoryManagementDialog(context),
+            tooltip: 'Export',
+            icon: const Icon(Icons.file_download_outlined, color: Colors.white),
+            onPressed: onExport,
+          ),
+          IconButton(
+            tooltip: 'Import',
+            icon: const Icon(Icons.file_upload_outlined, color: Colors.white),
+            onPressed: onImport,
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: onRefresh,
+          ),
+          IconButton(
+            icon: const Icon(Icons.category_outlined, color: Colors.white),
+            onPressed: onCategory,
             tooltip: 'จัดการหมวดหมู่ด่วน',
           ),
           const LogoutMenu(),
-          const SizedBox(width: 16),
+          const SizedBox(width: 8),
         ],
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: _bottomNavItems,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }
@@ -194,28 +277,28 @@ class StockOverviewPage extends StatelessWidget {
         _buildStatCard(
           context,
           'สินค้าทั้งหมด',
-          activeProducts.toString(),
+          NumberFormatter.formatInteger(activeProducts),
           Icons.inventory_2,
-          Colors.blue,
+          Theme.of(context).colorScheme.primary,
         ),
         _buildStatCard(
           context,
           'ใกล้หมด',
-          lowStockProducts.toString(),
+          NumberFormatter.formatInteger(lowStockProducts),
           Icons.warning,
-          Colors.orange,
+          Theme.of(context).colorScheme.primary,
         ),
         _buildStatCard(
           context,
           'มูลค่ารวม',
-          '฿${totalValue.toStringAsFixed(0)}',
+          NumberFormatter.formatCurrency(totalValue, decimalPlaces: 2),
           Icons.attach_money,
           Colors.green,
         ),
         _buildStatCard(
           context,
           'หมวดหมู่',
-          categories.toString(),
+          NumberFormatter.formatInteger(categories),
           Icons.category,
           Colors.purple,
         ),
@@ -227,7 +310,7 @@ class StockOverviewPage extends StatelessWidget {
       IconData icon, Color color) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -302,13 +385,16 @@ class StockOverviewPage extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.blue[100],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          entry.value.toString(),
+                          NumberFormatter.formatInteger(entry.value),
                           style: TextStyle(
-                            color: Colors.blue[700],
+                            color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -353,7 +439,9 @@ class StockOverviewPage extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '฿${(product.price * product.stockQuantity).toStringAsFixed(0)}',
+                          NumberFormatter.formatCurrency(
+                              product.price * product.stockQuantity,
+                              decimalPlaces: 0),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -443,8 +531,9 @@ class LowStockPage extends StatelessWidget {
                     children: [
                       Text('รหัส: ${product.productCode}'),
                       Text(
-                          'คงเหลือ: ${product.stockQuantity} / ${product.minStockLevel}'),
-                      Text('ราคา: ฿${product.price.toStringAsFixed(2)}'),
+                          'คงเหลือ: ${NumberFormatter.formatInteger(product.stockQuantity)} / ${NumberFormatter.formatInteger(product.minStockLevel)}'),
+                      Text(
+                          'ราคา: ${NumberFormatter.formatCurrency(product.price)}'),
                     ],
                   ),
                   trailing: IconButton(

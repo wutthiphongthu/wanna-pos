@@ -1,12 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
-import '../services/category_service.dart';
+import '../services/category_service_interface.dart';
 import 'category_event.dart';
 import 'category_state.dart';
 
 @injectable
 class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
-  final CategoryService _categoryService;
+  final ICategoryService _categoryService;
 
   CategoryBloc(this._categoryService) : super(CategoryInitial()) {
     on<LoadAllCategories>(_onLoadAllCategories);

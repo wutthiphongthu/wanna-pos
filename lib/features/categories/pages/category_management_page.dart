@@ -214,7 +214,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   }
 
   Widget _buildCategoryCard(CategoryModel category) {
-    final color = _parseColor(category.color) ?? Colors.blue;
+    final color = _parseColor(category.color) ?? Theme.of(context).colorScheme.primary;
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

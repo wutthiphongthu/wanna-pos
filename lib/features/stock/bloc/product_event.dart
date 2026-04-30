@@ -61,6 +61,15 @@ class DeleteProductEvent extends ProductEvent {
   List<Object?> get props => [product];
 }
 
+class DeleteProductsEvent extends ProductEvent {
+  final List<ProductModel> products;
+
+  const DeleteProductsEvent(this.products);
+
+  @override
+  List<Object?> get props => [products];
+}
+
 class LoadLowStockProducts extends ProductEvent {
   const LoadLowStockProducts();
 }

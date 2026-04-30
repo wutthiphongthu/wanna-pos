@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/di/injector.dart';
+import '../../../core/utils/number_formatter.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
@@ -236,7 +237,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildInfoCard(
                     'ราคาขาย',
-                    '฿${product.price.toStringAsFixed(2)}',
+                    NumberFormatter.formatCurrency(product.price),
                     Colors.green[700]!,
                   ),
                 ),
@@ -244,8 +245,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildInfoCard(
                     'ต้นทุน',
-                    '฿${product.cost.toStringAsFixed(2)}',
-                    Colors.orange[700]!,
+                    NumberFormatter.formatCurrency(product.cost),
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -257,7 +258,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   child: _buildInfoCard(
                     'กำไร',
                     '฿${product.profitMargin.toStringAsFixed(2)}',
-                    Colors.blue[700]!,
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -306,7 +307,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildInfoCard(
                     'จำนวนคงเหลือ',
-                    '${product.stockQuantity}',
+                    NumberFormatter.formatStock(product.stockQuantity),
                     product.isLowStock ? Colors.red[700]! : Colors.green[700]!,
                   ),
                 ),
@@ -314,8 +315,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 Expanded(
                   child: _buildInfoCard(
                     'ระดับสต็อกต่ำสุด',
-                    '${product.minStockLevel}',
-                    Colors.orange[700]!,
+                    NumberFormatter.formatStock(product.minStockLevel),
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -365,7 +366,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             ),
             const SizedBox(height: 16),
             _buildInfoRow('บาร์โค้ด', product.barcode ?? 'ไม่ระบุ'),
-            _buildInfoRow('URL รูปภาพ', product.imageUrl ?? 'ไม่ระบุ'),
+            _buildImagesInfo(product.imageUrls),
             _buildInfoRow('สร้างเมื่อ', _formatDateTime(product.createdAt)),
             _buildInfoRow('อัปเดตล่าสุด', _formatDateTime(product.updatedAt)),
           ],
@@ -464,6 +465,84 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImagesInfo(List<String> imageUrls) {
+    if (imageUrls.isEmpty) {
+      return _buildInfoRow('รูปภาพ', 'ไม่มีรูปภาพ');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'รูปภาพ',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${imageUrls.length} รูป',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: imageUrls.length,
+            itemBuilder: (context, index) {
+              final imageUrl = imageUrls[index];
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    imageUrl,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 80,
+                        height: 80,
+                        color: Colors.grey[200],
+                        child: Icon(
+                          Icons.broken_image,
+                          color: Colors.grey[400],
+                          size: 32,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 

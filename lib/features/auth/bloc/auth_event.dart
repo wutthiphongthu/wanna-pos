@@ -12,3 +12,6 @@ class LoginRequested extends AuthEvent {
 class LogoutRequested extends AuthEvent {}
 
 class AuthTokenExpired extends AuthEvent {}
+
+/// หลังสร้างร้านเสร็จ ให้เช็คสถานะอีกครั้ง (จะได้ AuthAuthenticated)
+class StoreCreated extends AuthEvent {}

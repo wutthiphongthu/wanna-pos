@@ -44,6 +44,11 @@ dependencies:
   floor: ^1.4.2
   sqflite: ^2.3.0
 
+  # Firebase (ดู docs/firebase_design.md, docs/firebase_setup_todo.md)
+  firebase_core: ^3.8.1
+  cloud_firestore: ^5.5.0
+  firebase_auth: ^5.3.4
+
   # Network & API
   dio: ^5.4.0
   retrofit: ^4.0.3
@@ -53,24 +58,32 @@ dependencies:
   dartz: ^0.10.1
   shared_preferences: ^2.2.2
   intl: ^0.19.0
-  
-  # Barcode Scanner
-  mobile_scanner: ^3.5.6
+
+  # Barcode Scanner (เวอร์ชัน 6+ รองรับ Firebase/GTMSessionFetcher)
+  mobile_scanner: ^6.0.0
   permission_handler: ^11.1.0
 
-  # Code Generation
-  build_runner: ^2.4.7
-  floor_generator: ^1.4.2
-  injectable_generator: ^2.4.1
-  retrofit_generator: ^7.0.8
-  json_serializable: ^6.7.1
+  # Image Handling
+  image_picker: ^1.0.4
+  http: ^1.1.0
+  path_provider: ^2.1.1
+  uuid: ^4.2.1
+  excel: ^2.1.0
+  file_picker: ^8.0.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   mockito: ^5.4.4
-  bloc_test: ^9.1.5
+  # bloc_test ชน floor_generator + flutter_test — ใช้เฉพาะเมื่อรัน test; เพิ่มกลับได้เมื่ออัปเกรดชุด test
+  # bloc_test: ^9.1.5
+  # Code generation (dev only)
+  build_runner: ^2.4.7
+  floor_generator: ^1.4.2
+  injectable_generator: ^2.4.1
+  retrofit_generator: ^7.0.8
+  json_serializable: ^6.7.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

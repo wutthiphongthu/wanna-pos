@@ -47,6 +47,9 @@ class _LoginPageState extends State<LoginPage> {
             _isLoading = false;
           });
           // AuthWrapper จะจัดการการนำทางให้อัตโนมัติ
+        } else if (state is AuthNeedsStore) {
+          setState(() => _isLoading = false);
+          // AuthWrapper จะนำไปหน้า CreateStorePage
         } else if (state is AuthError) {
           setState(() {
             _isLoading = false;
@@ -77,11 +80,11 @@ class _LoginPageState extends State<LoginPage> {
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                       borderRadius: BorderRadius.circular(60),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.3),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -96,12 +99,12 @@ class _LoginPageState extends State<LoginPage> {
 
                   const SizedBox(height: 32),
 
-                  const Text(
+                  Text(
                     'PPOS System',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
 
@@ -136,13 +139,15 @@ class _LoginPageState extends State<LoginPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Username Field
+                          // Email Field (Firebase Auth ใช้อีเมล)
                           TextFormField(
                             controller: _usernameController,
+                            keyboardType: TextInputType.emailAddress,
+                            autocorrect: false,
                             decoration: InputDecoration(
-                              labelText: 'ชื่อผู้ใช้',
-                              hintText: 'กรอกชื่อผู้ใช้',
-                              prefixIcon: const Icon(Icons.person),
+                              labelText: 'อีเมล',
+                              hintText: 'กรอกอีเมล',
+                              prefixIcon: const Icon(Icons.email_outlined),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -153,13 +158,13 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                    color: Colors.blue, width: 2),
+                                borderSide: BorderSide(
+                                    color: Theme.of(context).colorScheme.primary, width: 2),
                               ),
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'กรุณากรอกชื่อผู้ใช้';
+                                return 'กรุณากรอกอีเมล';
                               }
                               return null;
                             },
@@ -197,8 +202,8 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                    color: Colors.blue, width: 2),
+                                borderSide: BorderSide(
+                                    color: Theme.of(context).colorScheme.primary, width: 2),
                               ),
                             ),
                             validator: (value) {
@@ -217,7 +222,7 @@ class _LoginPageState extends State<LoginPage> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _handleLogin,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -247,31 +252,33 @@ class _LoginPageState extends State<LoginPage> {
 
                           const SizedBox(height: 16),
 
-                          // Demo Credentials
+                          // Firebase Auth หมายเหตุ
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.blue[50],
+                              color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.blue[200]!),
+                              border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
                             ),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Demo Credentials:',
+                                  'Firebase Authentication',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.blue[700],
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Admin: admin/1234 | Cashier: cashier/1234',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.blue[600],
-                                  ),
+                                  'ใช้อีเมลและรหัสผ่านที่สมัครใน Firebase Console',
+                                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                                ),
+                                Text(
+                                  'ต้องมี document ใน Firestore: /users/{uid} พร้อม storeId',
+                                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onPrimaryContainer),
                                 ),
                               ],
                             ),

@@ -1,5 +1,6 @@
 class CategoryModel {
   final int? id;
+  final int storeId;
   final String name;
   final String description;
   final String? iconName;
@@ -10,6 +11,7 @@ class CategoryModel {
 
   CategoryModel({
     this.id,
+    this.storeId = 1,
     required this.name,
     required this.description,
     this.iconName,
@@ -21,6 +23,7 @@ class CategoryModel {
 
   CategoryModel copyWith({
     int? id,
+    int? storeId,
     String? name,
     String? description,
     String? iconName,
@@ -31,6 +34,7 @@ class CategoryModel {
   }) {
     return CategoryModel(
       id: id ?? this.id,
+      storeId: storeId ?? this.storeId,
       name: name ?? this.name,
       description: description ?? this.description,
       iconName: iconName ?? this.iconName,
@@ -44,6 +48,7 @@ class CategoryModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'storeId': storeId,
       'name': name,
       'description': description,
       'iconName': iconName,
@@ -57,6 +62,7 @@ class CategoryModel {
   factory CategoryModel.fromMap(Map<String, dynamic> map) {
     return CategoryModel(
       id: map['id']?.toInt(),
+      storeId: map['storeId'] ?? 1,
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       iconName: map['iconName'],

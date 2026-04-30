@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'core/config/app_data_source.dart';
 import 'core/di/injector.dart';
-import 'features/sales/presentation/pages/pos_main_page.dart';
+import 'core/firebase/firebase_app.dart';
+import 'core/widgets/sync_resume_listener.dart';
+import 'core/utils/sample_data.dart';
+import 'core/utils/theme.dart';
 import 'features/auth/presentation/pages/login_page.dart';
-import 'features/auth/presentation/pages/mode_selection_page.dart';
 import 'features/auth/presentation/pages/auth_wrapper.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_event.dart';
-import 'features/backend/presentation/pages/backend_main_page.dart';
-import 'features/dashboard/presentation/pages/dashboard_page.dart';
-import 'features/stock/bloc/product_bloc.dart';
-import 'features/stock/pages/stock_main_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // เผื่อ Firebase — เรียกเมื่อ AppConfig.useFirebase เป็น true (ดู docs/firebase_design.md)
+  await initializeFirebaseIfNeeded();
+
   // Configure dependencies
   await configureDependencies();
+
+  // Seed sample data — ข้ามเมื่อใช้ Firebase (ต้อง login ก่อน และข้อมูลมาจาก Firestore)
+  if (!AppConfig.useFirebase) {
+    await SampleData.seedProducts();
+  }
 
   runApp(const MyApp());
 }
@@ -28,24 +35,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => getIt<AuthBloc>()..add(CheckAuthStatus()),
-      child: MaterialApp(
-        title: 'PPOS - Flutter POS System',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
+      child: SyncResumeListener(
+        child: MaterialApp(
+          title: 'PPOS - Flutter POS System',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          home: const AuthWrapper(),
+          routes: {
+            '/login': (context) => const LoginPage(),
+          },
         ),
-        home: const AuthWrapper(),
-        routes: {
-          '/login': (context) => const LoginPage(),
-          '/mode-selection': (context) => const ModeSelectionPage(),
-          '/pos': (context) => const POSMainPage(),
-          '/backend': (context) => const BackendMainPage(),
-          '/dashboard': (context) => const DashboardPage(),
-          '/stock': (context) => BlocProvider(
-                create: (context) => getIt<ProductBloc>(),
-                child: const StockMainPage(),
-              ),
-        },
       ),
     );
   }

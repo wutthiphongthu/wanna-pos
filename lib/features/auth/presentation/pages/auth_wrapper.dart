@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/auth_bloc.dart';
 import '../../bloc/auth_state.dart';
 import 'login_page.dart';
-import 'mode_selection_page.dart';
+import 'create_store_page.dart';
+import '../../../shell/pages/main_app_shell.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -21,8 +22,11 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (state is AuthAuthenticated) {
-          // ถ้า login แล้ว ไปที่หน้า mode selection
-          return const ModeSelectionPage();
+          return const MainAppShell();
+        }
+
+        if (state is AuthNeedsStore) {
+          return CreateStorePage(state: state);
         }
 
         if (state is AuthError) {

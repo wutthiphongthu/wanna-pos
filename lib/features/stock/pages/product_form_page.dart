@@ -4,10 +4,12 @@ import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
 import '../models/product_model.dart';
-import '../../categories/widgets/category_quick_dialog.dart';
 import '../../categories/models/category_model.dart';
-import '../../../core/utils/barcode_service.dart';
-import '../../../core/di/injector.dart';
+import '../../../core/widgets/barcode_text_field.dart';
+import '../../../core/widgets/custom_text_field.dart';
+import '../../../core/utils/number_formatter.dart';
+import '../../../core/widgets/category_selector.dart';
+import '../../../core/widgets/image_picker_widget.dart';
 
 class ProductFormPage extends StatefulWidget {
   final ProductModel? product;
@@ -29,11 +31,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
   final _minStockLevelController = TextEditingController();
   final _categoryController = TextEditingController();
   final _barcodeController = TextEditingController();
-  final _imageUrlController = TextEditingController();
 
   bool _isActive = true;
   bool _isLoading = false;
   CategoryModel? _selectedCategory;
+  List<String> _productImages = [];
 
   @override
   void initState() {
@@ -54,7 +56,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _minStockLevelController.dispose();
     _categoryController.dispose();
     _barcodeController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -63,13 +64,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _productCodeController.text = product.productCode;
     _nameController.text = product.name;
     _descriptionController.text = product.description;
-    _priceController.text = product.price.toString();
-    _costController.text = product.cost.toString();
+    _priceController.text = NumberFormatter.formatCurrency(product.price);
+    _costController.text = NumberFormatter.formatCurrency(product.cost);
     _stockQuantityController.text = product.stockQuantity.toString();
     _minStockLevelController.text = product.minStockLevel.toString();
     _categoryController.text = product.category;
     _barcodeController.text = product.barcode ?? '';
-    _imageUrlController.text = product.imageUrl ?? '';
+    _productImages = List.from(product.imageUrls);
     _isActive = product.isActive;
 
     // Note: _selectedCategory จะถูกตั้งค่าเป็น null
@@ -164,43 +165,22 @@ class _ProductFormPageState extends State<ProductFormPage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            RequiredTextField(
               controller: _productCodeController,
-              decoration: const InputDecoration(
-                labelText: 'รหัสสินค้า *',
-                hintText: 'P001',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'กรุณากรอกรหัสสินค้า';
-                }
-                return null;
-              },
+              labelText: 'รหัสสินค้า',
+              hintText: 'P001',
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            RequiredTextField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'ชื่อสินค้า *',
-                hintText: 'ชื่อสินค้า',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'กรุณากรอกชื่อสินค้า';
-                }
-                return null;
-              },
+              labelText: 'ชื่อสินค้า',
+              hintText: 'ชื่อสินค้า',
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            CustomTextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'รายละเอียด',
-                hintText: 'รายละเอียดสินค้า',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'รายละเอียด',
+              hintText: 'รายละเอียดสินค้า',
               maxLines: 3,
             ),
           ],
@@ -224,45 +204,22 @@ class _ProductFormPageState extends State<ProductFormPage> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: CurrencyTextField(
                     controller: _priceController,
-                    decoration: const InputDecoration(
-                      labelText: 'ราคาขาย *',
-                      hintText: '0.00',
-                      border: OutlineInputBorder(),
-                      prefixText: '฿',
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'กรุณากรอกราคาขาย';
-                      }
-                      if (double.tryParse(value) == null) {
-                        return 'กรุณากรอกตัวเลขที่ถูกต้อง';
-                      }
-                      return null;
-                    },
+                    labelText: 'ราคาขาย',
+                    hintText: '฿0.00',
+                    isRequired: true,
+                    showCurrencySymbol: true,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: CurrencyTextField(
                     controller: _costController,
-                    decoration: const InputDecoration(
-                      labelText: 'ต้นทุน',
-                      hintText: '0.00',
-                      border: OutlineInputBorder(),
-                      prefixText: '฿',
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        if (double.tryParse(value) == null) {
-                          return 'กรุณากรอกตัวเลขที่ถูกต้อง';
-                        }
-                      }
-                      return null;
-                    },
+                    labelText: 'ต้นทุน',
+                    hintText: '฿0.00',
+                    isRequired: true,
+                    showCurrencySymbol: true,
                   ),
                 ),
               ],
@@ -288,43 +245,21 @@ class _ProductFormPageState extends State<ProductFormPage> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: NumberTextField(
                     controller: _stockQuantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'จำนวนคงเหลือ *',
-                      hintText: '0',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'กรุณากรอกจำนวนคงเหลือ';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'กรุณากรอกตัวเลขที่ถูกต้อง';
-                      }
-                      return null;
-                    },
+                    labelText: 'จำนวนคงเหลือ',
+                    hintText: '0',
+                    isRequired: true,
+                    minValue: 0,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: NumberTextField(
                     controller: _minStockLevelController,
-                    decoration: const InputDecoration(
-                      labelText: 'ระดับสต็อกต่ำสุด',
-                      hintText: '0',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        if (int.tryParse(value) == null) {
-                          return 'กรุณากรอกตัวเลขที่ถูกต้อง';
-                        }
-                      }
-                      return null;
-                    },
+                    labelText: 'ระดับสต็อกต่ำสุด',
+                    hintText: '0',
+                    minValue: 0,
                   ),
                 ),
               ],
@@ -348,86 +283,28 @@ class _ProductFormPageState extends State<ProductFormPage> {
             ),
             const SizedBox(height: 16),
 
-            // Category Selection Button
-            InkWell(
-              onTap: _showCategorySelection,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[400]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    if (_selectedCategory != null) ...[
-                      CircleAvatar(
-                        radius: 16,
-                        backgroundColor:
-                            _parseCategoryColor(_selectedCategory!.color)
-                                .withOpacity(0.1),
-                        child: Icon(
-                          _parseCategoryIcon(_selectedCategory!.iconName),
-                          size: 18,
-                          color: _parseCategoryColor(_selectedCategory!.color),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _selectedCategory!.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                            if (_selectedCategory!.description.isNotEmpty)
-                              Text(
-                                _selectedCategory!.description,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ] else ...[
-                      Icon(Icons.category, color: Colors.grey[400]),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'เลือกหมวดหมู่สินค้า',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                    Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
-                  ],
-                ),
-              ),
+            CategorySelector(
+              selectedCategory: _selectedCategory,
+              onCategoryChanged: (category) {
+                setState(() {
+                  _selectedCategory = category;
+                  if (category != null) {
+                    _categoryController.clear(); // Clear manual input
+                  }
+                });
+              },
             ),
 
             const SizedBox(height: 12),
 
             // Manual Category Input (Fallback)
-            TextFormField(
+            CustomTextField(
               controller: _categoryController,
-              decoration: const InputDecoration(
-                labelText: 'หรือพิมพ์หมวดหมู่เอง',
-                hintText: 'พิมพ์ชื่อหมวดหมู่',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.edit),
-              ),
-              onChanged: (value) {
-                if (value.isNotEmpty) {
+              labelText: 'หรือพิมพ์หมวดหมู่เอง',
+              hintText: 'พิมพ์ชื่อหมวดหมู่',
+              prefixIcon: const Icon(Icons.edit),
+              onChanged: () {
+                if (_categoryController.text.isNotEmpty) {
                   setState(() {
                     _selectedCategory =
                         null; // Clear selected category if typing manually
@@ -453,27 +330,22 @@ class _ProductFormPageState extends State<ProductFormPage> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            TextFormField(
+            BarcodeTextField(
               controller: _barcodeController,
-              decoration: InputDecoration(
-                labelText: 'บาร์โค้ด',
-                hintText: '1234567890123',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.qr_code_scanner),
-                  onPressed: _scanBarcode,
-                  tooltip: 'สแกนบาร์โค้ด',
-                ),
-              ),
+              labelText: 'บาร์โค้ด',
+              hintText: '1234567890123',
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _imageUrlController,
-              decoration: const InputDecoration(
-                labelText: 'URL รูปภาพ',
-                hintText: 'https://example.com/image.jpg',
-                border: OutlineInputBorder(),
-              ),
+            ImagePickerWidget(
+              initialImages: _productImages,
+              onImagesChanged: (images) {
+                setState(() {
+                  _productImages = images;
+                });
+              },
+              maxImages: 3,
+              labelText: 'รูปภาพสินค้า',
+              enabled: !_isLoading,
             ),
           ],
         ),
@@ -551,17 +423,16 @@ class _ProductFormPageState extends State<ProductFormPage> {
         productCode: _productCodeController.text.trim(),
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
-        price: double.parse(_priceController.text),
-        cost: double.tryParse(_costController.text) ?? 0.0,
+        price:
+            NumberFormatter.parseFormattedNumber(_priceController.text) ?? 0.0,
+        cost: NumberFormatter.parseFormattedNumber(_costController.text) ?? 0.0,
         stockQuantity: int.parse(_stockQuantityController.text),
         minStockLevel: int.tryParse(_minStockLevelController.text) ?? 0,
         category: _selectedCategory?.name ?? _categoryController.text.trim(),
         barcode: _barcodeController.text.trim().isEmpty
             ? null
             : _barcodeController.text.trim(),
-        imageUrl: _imageUrlController.text.trim().isEmpty
-            ? null
-            : _imageUrlController.text.trim(),
+        imageUrls: _productImages,
         isActive: _isActive,
         createdAt: widget.product?.createdAt ?? now,
         updatedAt: now,
@@ -582,79 +453,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
           backgroundColor: Colors.red,
         ),
       );
-    }
-  }
-
-  void _showCategorySelection() {
-    CategoryDialogHelper.showCategorySelectionDialog(
-      context,
-      onCategorySelected: (category) {
-        setState(() {
-          _selectedCategory = category;
-          _categoryController.clear(); // Clear manual input
-        });
-      },
-    );
-  }
-
-  Future<void> _scanBarcode() async {
-    try {
-      final barcodeService = getIt<BarcodeService>();
-      final result = await barcodeService.scanBarcode(context);
-
-      if (result != null) {
-        setState(() {
-          _barcodeController.text = result;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('สแกนบาร์โค้ดสำเร็จ: $result'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการสแกน: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Color _parseCategoryColor(String? colorString) {
-    if (colorString == null) return Colors.blue;
-    try {
-      return Color(int.parse(colorString.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      return Colors.blue;
-    }
-  }
-
-  IconData _parseCategoryIcon(String? iconName) {
-    switch (iconName) {
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'local_drink':
-        return Icons.local_drink;
-      case 'home':
-        return Icons.home;
-      case 'electrical_services':
-        return Icons.electrical_services;
-      case 'checkroom':
-        return Icons.checkroom;
-      case 'sports':
-        return Icons.sports;
-      case 'book':
-        return Icons.book;
-      case 'toys':
-        return Icons.toys;
-      case 'health_and_safety':
-        return Icons.health_and_safety;
-      default:
-        return Icons.category;
     }
   }
 }

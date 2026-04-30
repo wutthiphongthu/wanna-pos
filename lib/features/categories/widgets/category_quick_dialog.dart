@@ -57,7 +57,7 @@ class _CategoryQuickDialogState extends State<CategoryQuickDialog> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16),
@@ -65,7 +65,7 @@ class _CategoryQuickDialogState extends State<CategoryQuickDialog> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.category, color: Colors.blue[700]),
+                    Icon(Icons.category, color: Theme.of(context).colorScheme.primary),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -74,7 +74,7 @@ class _CategoryQuickDialogState extends State<CategoryQuickDialog> {
                             : 'จัดการหมวดหมู่',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue[700],
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                       ),
                     ),
@@ -240,7 +240,7 @@ class _CategoryQuickDialogState extends State<CategoryQuickDialog> {
   }
 
   Widget _buildCategoryTile(CategoryModel category) {
-    final color = _parseColor(category.color) ?? Colors.blue;
+    final color = _parseColor(category.color) ?? Theme.of(context).colorScheme.primary;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

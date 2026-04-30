@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Colors
-  static const Color primaryColor = Color(0xFF1976D2);
-  static const Color primaryLightColor = Color(0xFF42A5F5);
-  static const Color primaryDarkColor = Color(0xFF1565C0);
+  // สีหลัก (Primary): #F89E2B
+  static const Color primaryColor = Color(0xFFF89E2B);
+  static const Color primaryLightColor = Color(0xFFFBB85C);
+  static const Color primaryDarkColor = Color(0xFFE08A1F);
 
-  static const Color secondaryColor = Color(0xFFFF9800);
-  static const Color secondaryLightColor = Color(0xFFFFB74D);
-  static const Color secondaryDarkColor = Color(0xFFF57C00);
+  // สีเสริม (Secondary) – โทนเข้ากับส้ม
+  static const Color secondaryColor = Color(0xFFD97A15);
+  static const Color secondaryLightColor = Color(0xFFF5A623);
+  static const Color secondaryDarkColor = Color(0xFFB86512);
 
-  static const Color successColor = Color(0xFF4CAF50);
-  static const Color warningColor = Color(0xFFFF9800);
-  static const Color errorColor = Color(0xFFF44336);
-  static const Color infoColor = Color(0xFF2196F3);
+  static const Color successColor = Color(0xFF2E7D32);
+  static const Color warningColor = Color(0xFFF9A825);
+  static const Color errorColor = Color(0xFFC62828);
+  static const Color infoColor = Color(0xFF1565C0);
 
-  static const Color backgroundColor = Color(0xFFF5F5F5);
+  static const Color backgroundColor = Color(0xFFFAFAF9);
   static const Color surfaceColor = Color(0xFFFFFFFF);
   static const Color cardColor = Color(0xFFFFFFFF);
 
-  static const Color textPrimaryColor = Color(0xFF212121);
-  static const Color textSecondaryColor = Color(0xFF757575);
-  static const Color textDisabledColor = Color(0xFFBDBDBD);
+  static const Color textPrimaryColor = Color(0xFF1A1A1A);
+  static const Color textSecondaryColor = Color(0xFF616161);
+  static const Color textDisabledColor = Color(0xFF9E9E9E);
 
   // Text Styles
   static const TextStyle headline1 = TextStyle(
@@ -84,12 +85,26 @@ class AppTheme {
     color: Colors.white,
   );
 
-  // Theme Data
+  // Theme Data – ใช้ palette จากสีหลัก #F89E2B
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
+      colorScheme: ColorScheme.light(
+        primary: primaryColor,
+        onPrimary: Colors.white,
+        primaryContainer: primaryLightColor,
+        onPrimaryContainer: primaryDarkColor,
+        secondary: secondaryColor,
+        onSecondary: Colors.white,
+        secondaryContainer: const Color(0xFFFFECDC),
+        onSecondaryContainer: secondaryDarkColor,
+        tertiary: const Color(0xFF8D6E63),
+        error: errorColor,
+        onError: Colors.white,
+        surface: surfaceColor,
+        onSurface: textPrimaryColor,
+        surfaceContainerHighest: const Color(0xFFF5F0EB),
+        outline: const Color(0xFFE0D5CC),
         brightness: Brightness.light,
       ),
       appBarTheme: const AppBarTheme(
@@ -98,7 +113,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: cardColor,
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -148,8 +163,22 @@ class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
+      colorScheme: ColorScheme.dark(
+        primary: primaryLightColor,
+        onPrimary: primaryDarkColor,
+        primaryContainer: primaryDarkColor,
+        onPrimaryContainer: primaryLightColor,
+        secondary: secondaryLightColor,
+        onSecondary: primaryDarkColor,
+        secondaryContainer: secondaryDarkColor,
+        onSecondaryContainer: secondaryLightColor,
+        tertiary: const Color(0xFFA1887F),
+        error: const Color(0xFFEF5350),
+        onError: Colors.black87,
+        surface: const Color(0xFF1C1B1F),
+        onSurface: const Color(0xFFE6E1E5),
+        surfaceContainerHighest: const Color(0xFF2D2B30),
+        outline: const Color(0xFF938F99),
         brightness: Brightness.dark,
       ),
       appBarTheme: const AppBarTheme(
@@ -158,7 +187,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: const Color(0xFF424242),
         elevation: 2,
         shape: RoundedRectangleBorder(
