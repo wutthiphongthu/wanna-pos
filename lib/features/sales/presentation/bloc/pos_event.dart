@@ -81,3 +81,7 @@ class ProcessPayment extends PosEvent {
   @override
   List<Object?> get props => [paymentMethod, amountReceived];
 }
+
+class ClearPaymentError extends PosEvent {
+  const ClearPaymentError();
+}

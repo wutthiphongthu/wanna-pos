@@ -166,6 +166,92 @@ class AuthServiceFirebase implements IAuthService {
   }
 
   @override
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    String displayName = '',
+  }) async {
+    final mail = email.trim();
+    if (mail.isEmpty || password.isEmpty) {
+      return {'success': false, 'message': 'กรุณากรอกอีเมลและรหัสผ่าน'};
+    }
+    if (password.length < 6) {
+      return {'success': false, 'message': 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'};
+    }
+
+    try {
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: mail,
+        password: password,
+      );
+      final user = credential.user;
+      if (user == null) {
+        return {'success': false, 'message': 'สมัครสมาชิกไม่สำเร็จ'};
+      }
+
+      final name = displayName.trim().isNotEmpty
+          ? displayName.trim()
+          : (user.email?.split('@').first ?? 'ผู้ใช้');
+
+      if (displayName.trim().isNotEmpty) {
+        await user.updateDisplayName(displayName.trim());
+      }
+
+      final now = FieldValue.serverTimestamp();
+      await _firestore.doc(FirestorePaths.user(user.uid)).set({
+        'email': user.email,
+        'displayName': name,
+        'userFullName': name,
+        'role': 'owner',
+        'storeId': '',
+        'storeName': '',
+        'createdAt': now,
+        'updatedAt': now,
+      });
+
+      final token = await user.getIdToken() ?? '';
+
+      await _storageService.setString(AppConstants.userIdKey, user.uid);
+      await _storageService.setString(AppConstants.userRoleKey, 'owner');
+      await _storageService.setString(AppConstants.userEmailKey, user.email ?? '');
+      await _storageService.setString(AppConstants.userFullNameKey, name);
+      await _storageService.setString(AppConstants.storeIdKey, '');
+      await _storageService.setString(AppConstants.storeNameKey, '');
+      await _storageService.setString(AppConstants.tokenKey, token);
+
+      return {
+        'success': true,
+        'data': {
+          'userId': user.uid,
+          'username': user.email ?? user.uid,
+          'userRole': 'owner',
+          'userEmail': user.email ?? '',
+          'userFullName': name,
+          'storeId': '',
+          'storeName': '',
+          'token': token,
+        },
+      };
+    } on FirebaseAuthException catch (e) {
+      String message = 'สมัครสมาชิกไม่สำเร็จ';
+      switch (e.code) {
+        case 'email-already-in-use':
+          message = 'อีเมลนี้ถูกใช้สมัครแล้ว';
+          break;
+        case 'invalid-email':
+          message = 'รูปแบบอีเมลไม่ถูกต้อง';
+          break;
+        case 'weak-password':
+          message = 'รหัสผ่านอ่อนเกินไป';
+          break;
+        default:
+          message = e.message ?? message;
+      }
+      return {'success': false, 'message': message};
+    }
+  }
+
+  @override
   Future<void> logout() async {
     await _auth.signOut();
     await _storageService.remove(AppConstants.tokenKey);

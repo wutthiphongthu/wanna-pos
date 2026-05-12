@@ -30,15 +30,6 @@ class AuthWrapper extends StatelessWidget {
         }
 
         if (state is AuthError) {
-          // แสดง error และกลับไปหน้า login
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
-          });
           return const LoginPage();
         }
 

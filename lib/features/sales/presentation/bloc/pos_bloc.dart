@@ -35,6 +35,7 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     on<SetItemDiscount>(_onSetItemDiscount);
     on<SetBillDiscount>(_onSetBillDiscount);
     on<ProcessPayment>(_onProcessPayment);
+    on<ClearPaymentError>(_onClearPaymentError);
   }
 
   /// คำนวณคะแนนจากยอดสุดท้ายหลังหักส่วนลดรายการและส่วนลดทั้งบิล
@@ -202,6 +203,15 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     }
   }
 
+  void _onClearPaymentError(ClearPaymentError event, Emitter<PosState> emit) {
+    if (state is PosCartLoaded) {
+      final s = state as PosCartLoaded;
+      if (s.paymentErrorMessage != null) {
+        emit(s.copyWith(clearPaymentError: true));
+      }
+    }
+  }
+
   Future<void> _onProcessPayment(ProcessPayment event, Emitter<PosState> emit) async {
     final currentState = state is PosCartLoaded ? state as PosCartLoaded : null;
     if (currentState == null || currentState.items.isEmpty) return;
@@ -247,7 +257,11 @@ class PosBloc extends Bloc<PosEvent, PosState> {
     }).whereType<SaleLineItemEntity>().toList();
 
     final createResult = await _salesRepo.createSaleWithLineItems(sale, lineItems);
-    if (createResult.isLeft()) return;
+    if (createResult.isLeft()) {
+      final message = createResult.fold((l) => l.message, (_) => 'บันทึกบิลไม่สำเร็จ');
+      emit(currentState.copyWith(paymentErrorMessage: message));
+      return;
+    }
 
     if (member != null && member.id != null && pointsToAdd > 0) {
       final ptsResult = await _memberRepository.addPoints(member.id!, pointsToAdd);

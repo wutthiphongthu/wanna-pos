@@ -10,6 +10,19 @@ import '../../services/dashboard_sales_service.dart';
 import '../../../sales/services/sale_detail_dto.dart';
 import '../cubit/dashboard_cubit.dart';
 
+String salePaymentMethodLabel(String method) {
+  switch (method.toLowerCase()) {
+    case 'cash':
+      return 'เงินสด';
+    case 'transfer':
+      return 'โอนเงิน';
+    case 'mixed':
+      return 'ผสม';
+    default:
+      return method.trim().isEmpty ? '-' : method;
+  }
+}
+
 class DashboardPage extends StatelessWidget {
   final VoidCallback? onMenuTap;
   /// ไปยังเมนูใน shell: 0=หน้าขาย, 1=หลังบ้าน, 2=แดชบอร์ด, 3=สต็อก, 4=CRM
@@ -221,6 +234,24 @@ class DashboardPage extends StatelessWidget {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'ช่องทางชำระ (วันนี้)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildTodayPaymentBreakdown(
+                          context,
+                          isLoading
+                              ? const DashboardPaymentBreakdown()
+                              : (loaded
+                                  ? state.today.paymentBreakdown
+                                  : const DashboardPaymentBreakdown()),
+                        ),
                       ],
                     );
                   },
@@ -313,12 +344,28 @@ class DashboardPage extends StatelessWidget {
                         color: isCancelled ? Colors.grey : null,
                       ),
                     ),
-                    subtitle: Text(
-                      sale.createdAtDateTime.toString().substring(0, 16),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isCancelled ? Colors.grey : Colors.grey[600],
-                      ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          sale.createdAtDateTime.toString().substring(0, 16),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isCancelled ? Colors.grey : Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          salePaymentMethodLabel(sale.paymentMethod),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isCancelled
+                                ? Colors.grey
+                                : Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                      ],
                     ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -344,6 +391,122 @@ class DashboardPage extends StatelessWidget {
                 },
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayPaymentBreakdown(
+    BuildContext context,
+    DashboardPaymentBreakdown bd,
+  ) {
+    final other = bd.otherBills > 0 || bd.otherAmount > 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _paymentMiniTile(
+                context,
+                label: 'เงินสด',
+                bills: bd.cashBills,
+                amount: bd.cashAmount,
+                icon: Icons.payments_outlined,
+                accent: Colors.teal.shade700,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _paymentMiniTile(
+                context,
+                label: 'โอนเงิน',
+                bills: bd.transferBills,
+                amount: bd.transferAmount,
+                icon: Icons.account_balance_outlined,
+                accent: Colors.indigo.shade700,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _paymentMiniTile(
+                context,
+                label: 'ผสม',
+                bills: bd.mixedBills,
+                amount: bd.mixedAmount,
+                icon: Icons.call_split,
+                accent: Colors.deepPurple.shade700,
+              ),
+            ),
+          ],
+        ),
+        if (other) ...[
+          const SizedBox(height: 10),
+          _paymentMiniTile(
+            context,
+            label: 'อื่นๆ',
+            bills: bd.otherBills,
+            amount: bd.otherAmount,
+            icon: Icons.payment_outlined,
+            accent: Colors.grey.shade700,
+            fullWidth: true,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _paymentMiniTile(
+    BuildContext context, {
+    required String label,
+    required int bills,
+    required double amount,
+    required IconData icon,
+    required Color accent,
+    bool fullWidth = false,
+  }) {
+    return Container(
+      width: fullWidth ? double.infinity : null,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: accent),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: accent,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            NumberFormatter.formatCurrency(amount),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[800],
+            ),
+          ),
+          Text(
+            '$bills บิล',
+            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -630,7 +793,9 @@ class _SaleDetailDialog extends StatelessWidget {
               const SizedBox(height: 20),
               const Divider(height: 1),
               _SummaryRow(label: 'ยอดรวม', value: NumberFormatter.formatCurrency(sale.totalAmount)),
-              _SummaryRow(label: 'ช่องทางชำระ', value: _paymentMethodLabel(sale.paymentMethod)),
+              _SummaryRow(
+                  label: 'ช่องทางชำระ',
+                  value: salePaymentMethodLabel(sale.paymentMethod)),
               _SummaryRow(label: 'จำนวนที่ชำระ', value: NumberFormatter.formatCurrency(amountReceived)),
               _SummaryRow(label: 'เงินทอน', value: NumberFormatter.formatCurrency(change)),
               const SizedBox(height: 16),
@@ -680,19 +845,6 @@ class _SaleDetailDialog extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _paymentMethodLabel(String method) {
-    switch (method.toLowerCase()) {
-      case 'cash':
-        return 'เงินสด';
-      case 'transfer':
-        return 'โอนเงิน';
-      case 'mixed':
-        return 'ผสม';
-      default:
-        return method;
-    }
   }
 }
 

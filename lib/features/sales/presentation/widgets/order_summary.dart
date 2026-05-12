@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/number_formatter.dart';
@@ -8,6 +10,17 @@ import 'member_selector_dialog.dart';
 Color _primary(BuildContext context) => Theme.of(context).colorScheme.primary;
 Color _primaryContainer(BuildContext context) =>
     Theme.of(context).colorScheme.primaryContainer;
+
+String _paymentMethodLabelUi(PaymentMethod m) {
+  switch (m) {
+    case PaymentMethod.cash:
+      return 'เงินสด';
+    case PaymentMethod.transfer:
+      return 'โอนเงิน';
+    case PaymentMethod.mixed:
+      return 'ผสม (หลายช่องทาง)';
+  }
+}
 
 class _PaymentDialogResult {
   final PaymentMethod method;
@@ -50,6 +63,10 @@ Future<void> _showPaymentSummaryDialog(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _summaryTextRow('ช่องทาง', _paymentMethodLabelUi(paymentMethod)),
+          const SizedBox(height: 8),
+          _summaryRow('ยอดสุทธิ', orderTotal),
+          const SizedBox(height: 8),
           _summaryRow('รับ', amountReceived),
           if (change > 0) ...[
             const SizedBox(height: 12),
@@ -111,6 +128,31 @@ Widget _summaryRow(String label, double amount, {bool isChange = false}) {
   );
 }
 
+Widget _summaryTextRow(String label, String value) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      Flexible(
+        child: Text(
+          value,
+          textAlign: TextAlign.end,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
 /// Dialog เลือกช่องทางชำระ + กรอกจำนวนเงินที่รับมา (แป้นตัวเลข)
 class _PaymentMethodDialog extends StatefulWidget {
   final double orderTotal;
@@ -137,6 +179,34 @@ class _PaymentMethodDialogState extends State<_PaymentMethodDialog> {
     return double.tryParse(s) ?? 0;
   }
 
+  String? _validateForConfirm() {
+    final total = widget.orderTotal;
+    if (total <= 0) return 'ยอดสุทธิไม่ถูกต้อง';
+    final received = _currentAmount;
+    if (received.isNaN || received.isInfinite) return 'จำนวนเงินไม่ถูกต้อง';
+    if (received < 0) return 'จำนวนเงินต้องไม่ติดลบ';
+    const eps = 0.009;
+    if (received + eps < total) {
+      return 'ยอดที่รับมา (${NumberFormatter.formatCurrency(received)}) '
+          'ต้องไม่น้อยกว่ายอดสุทธิ (${NumberFormatter.formatCurrency(total)})';
+    }
+    return null;
+  }
+
+  void _fillBufferWithOrderTotalExact() {
+    _amountBuffer.clear();
+    final t = widget.orderTotal;
+    if ((t - t.round()).abs() < 1e-6) {
+      _amountBuffer.write(t.round().toString());
+    } else {
+      _amountBuffer.write(t.toStringAsFixed(2));
+    }
+  }
+
+  void _setTotalExact() {
+    setState(_fillBufferWithOrderTotalExact);
+  }
+
   void _onKey(String key) {
     setState(() {
       if (key == 'backspace') {
@@ -157,13 +227,6 @@ class _PaymentMethodDialogState extends State<_PaymentMethodDialog> {
     });
   }
 
-  void _setTotal() {
-    setState(() {
-      _amountBuffer.clear();
-      _amountBuffer.write(widget.orderTotal.toStringAsFixed(0));
-    });
-  }
-
   void _addAmount(double amount) {
     setState(() {
       final now = _currentAmount;
@@ -176,107 +239,215 @@ class _PaymentMethodDialogState extends State<_PaymentMethodDialog> {
   Widget build(BuildContext context) {
     final displayAmount =
         _amountBuffer.isEmpty ? '0' : _amountBuffer.toString();
+    final lockAmountInput = _method == PaymentMethod.transfer;
 
-    return AlertDialog(
-      title: const Text('ช่องทางการชำระเงิน'),
-      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-      content: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 520),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Text('ช่องทาง',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        _methodChip(PaymentMethod.cash, Icons.payments_outlined,
-                            'เงินสด'),
-                        const SizedBox(width: 4),
-                        _methodChip(PaymentMethod.transfer,
-                            Icons.account_balance_outlined, 'โอน'),
-                        const SizedBox(width: 4),
-                        _methodChip(
-                            PaymentMethod.mixed, Icons.blender_outlined, 'ผสม'),
-                      ],
-                    ),
+    return ScaffoldMessenger(
+      child: Builder(
+        builder: (messengerContext) {
+          return Scaffold(
+            backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: false,
+            body: AlertDialog(
+              title: const Text('ช่องทางการชำระเงิน'),
+              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+              content: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 520),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Text('ช่องทาง',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                _methodChip(PaymentMethod.cash,
+                                    Icons.payments_outlined, 'เงินสด'),
+                                const SizedBox(width: 4),
+                                _methodChip(PaymentMethod.transfer,
+                                    Icons.account_balance_outlined, 'โอน'),
+                                const SizedBox(width: 4),
+                                _methodChip(PaymentMethod.mixed,
+                                    Icons.call_split, 'ผสม'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _primary(context).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _primary(context).withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.receipt_long,
+                                color: _primary(context), size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'ยอดสุทธิที่ต้องชำระ',
+                                    style: TextStyle(
+                                        fontSize: 11, color: Colors.grey[700]),
+                                  ),
+                                  Text(
+                                    NumberFormatter.formatCurrency(
+                                        widget.orderTotal),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: _primary(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('จำนวนเงินที่รับมา (บาท)',
+                              style: TextStyle(
+                                  fontSize: 12, fontWeight: FontWeight.w600)),
+                          TextButton(
+                            onPressed: lockAmountInput ? null : _setTotalExact,
+                            style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                minimumSize: Size.zero,
+                                tapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap),
+                            child: const Text('ใช้ยอดรวม',
+                                style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          displayAmount.isEmpty ? '0' : displayAmount,
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace'),
+                        ),
+                      ),
+                      if (widget.orderTotal > 0 &&
+                          _method == PaymentMethod.cash &&
+                          !_currentAmount.isNaN &&
+                          _currentAmount + 0.009 >= widget.orderTotal)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'เงินทอน ${NumberFormatter.formatCurrency(_currentAmount - widget.orderTotal)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ),
+                      if (_method == PaymentMethod.transfer)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'โอนเงิน: ยอดรับเท่ายอดสุทธิ (ไม่สามารถแก้ไขตัวเลขได้)',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[700]),
+                          ),
+                        ),
+                      if (_method == PaymentMethod.mixed)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            'ผสม: กรอกยอดรับรวมจากทุกช่องทาง (ต้องไม่น้อยกว่ายอดสุทธิ)',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[700]),
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+                      AbsorbPointer(
+                        absorbing: lockAmountInput,
+                        child: Opacity(
+                          opacity: lockAmountInput ? 0.45 : 1.0,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildNumberPad()),
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                    width: 88, child: _buildQuickAddButtons()),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('จำนวนเงินที่รับมา (บาท)',
-                      style:
-                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                  TextButton(
-                    onPressed: _setTotal,
-                    style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                    child:
-                        const Text('ใช้ยอดรวม', style: TextStyle(fontSize: 12)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  displayAmount.isEmpty ? '0' : displayAmount,
-                  style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace'),
                 ),
               ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(messengerContext),
+                  child: const Text('ยกเลิก'),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: _buildNumberPad()),
-                    const SizedBox(width: 8),
-                    SizedBox(width: 88, child: _buildQuickAddButtons()),
-                  ],
+                FilledButton(
+                  onPressed: () {
+                    final err = _validateForConfirm();
+                    if (err != null) {
+                      ScaffoldMessenger.of(messengerContext).showSnackBar(
+                        SnackBar(
+                          content: Text(err),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.pop(
+                      messengerContext,
+                      _PaymentDialogResult(
+                        method: _method,
+                        amountReceived: _currentAmount,
+                      ),
+                    );
+                  },
+                  child: const Text('ตกลง'),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('ยกเลิก'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(
-              context,
-              _PaymentDialogResult(
-                  method: _method, amountReceived: _currentAmount)),
-          child: const Text('ตกลง'),
-        ),
-      ],
     );
   }
 
@@ -284,7 +455,14 @@ class _PaymentMethodDialogState extends State<_PaymentMethodDialog> {
     final selected = _method == value;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _method = value),
+        onTap: () {
+          setState(() {
+            _method = value;
+            if (value == PaymentMethod.transfer) {
+              _fillBufferWithOrderTotalExact();
+            }
+          });
+        },
         borderRadius: BorderRadius.circular(6),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -727,22 +905,66 @@ class OrderSummary extends StatelessWidget {
                                         context,
                                         orderTotal: total,
                                       );
-                                      if (!context.mounted || result == null)
+                                      if (!context.mounted || result == null) {
                                         return;
-                                      context.read<PosBloc>().add(
-                                          ProcessPayment(
-                                              paymentMethod: result.method,
-                                              amountReceived:
-                                                  result.amountReceived));
-                                      if (context.mounted) {
-                                        _showPaymentSummaryDialog(
-                                          context,
-                                          amountReceived: result.amountReceived,
-                                          orderTotal: total,
+                                      }
+                                      final bloc = context.read<PosBloc>();
+                                      bloc.add(ProcessPayment(
                                           paymentMethod: result.method,
-                                          earnedPoints: earnedPoints,
-                                          hasMember: selectedMember != null,
+                                          amountReceived:
+                                              result.amountReceived));
+                                      try {
+                                        final next = await bloc.stream
+                                            .timeout(
+                                          const Duration(seconds: 45),
+                                        )
+                                            .firstWhere(
+                                          (s) {
+                                            if (s is PosInitial) return true;
+                                            if (s is PosCartLoaded &&
+                                                s.paymentErrorMessage != null) {
+                                              return true;
+                                            }
+                                            return false;
+                                          },
                                         );
+                                        if (!context.mounted) return;
+                                        if (next is PosInitial) {
+                                          await _showPaymentSummaryDialog(
+                                            context,
+                                            amountReceived:
+                                                result.amountReceived,
+                                            orderTotal: total,
+                                            paymentMethod: result.method,
+                                            earnedPoints: earnedPoints,
+                                            hasMember: selectedMember != null,
+                                          );
+                                        } else if (next is PosCartLoaded) {
+                                          final msg = next.paymentErrorMessage;
+                                          if (msg != null) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(msg),
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                              ),
+                                            );
+                                            bloc.add(const ClearPaymentError());
+                                          }
+                                        }
+                                      } on TimeoutException {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'หมดเวลารอผลชำระเงิน กรุณาลองอีกครั้ง'),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
                                       }
                                     },
                               style: ElevatedButton.styleFrom(

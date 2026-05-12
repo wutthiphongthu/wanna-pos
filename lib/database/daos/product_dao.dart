@@ -35,7 +35,7 @@ abstract class ProductDao {
   Future<ProductEntity?> getProductByBarcode(int storeId, String barcode);
 
   @Query(
-      'SELECT * FROM products WHERE store_id = :storeId AND sync_status != 2 AND (name LIKE :searchTerm OR productCode LIKE :searchTerm OR barcode LIKE :searchTerm)')
+      'SELECT * FROM products WHERE store_id = :storeId AND sync_status != 2 AND (name LIKE :searchTerm OR productCode LIKE :searchTerm OR barcode LIKE :searchTerm OR IFNULL(productSubname, \'\') LIKE :searchTerm OR IFNULL(customBarcodeId, \'\') LIKE :searchTerm)')
   Future<List<ProductEntity>> searchProductsByStore(int storeId, String searchTerm);
 
   @Query(

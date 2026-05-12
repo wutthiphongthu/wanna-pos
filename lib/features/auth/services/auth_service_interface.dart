@@ -10,5 +10,11 @@ abstract class IAuthService {
   /// หลังสร้างร้านแล้ว ตั้งค่า store ให้ user ปัจจุบัน (Firebase: อัปเดต user doc + storage)
   Future<void> setStoreForCurrentUser(String storeId, String storeName);
   Future<Map<String, dynamic>> login(String username, String password);
+  /// สมัครด้วยอีเมล/รหัสผ่าน — หลังสำเร็จผู้ใช้ล็อกอินแล้ว (ยังไม่มีร้านจนกว่าจะสร้างใน Firestore)
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    String displayName = '',
+  });
   Future<void> logout();
 }

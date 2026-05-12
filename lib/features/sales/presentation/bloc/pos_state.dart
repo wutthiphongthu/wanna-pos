@@ -37,12 +37,15 @@ class PosCartLoaded extends PosState {
   final int earnedPoints;
   /// ส่วนลดทั้งบิล (บาท)
   final double billDiscount;
+  /// ข้อความเมื่อบันทึกบิลล้มเหลว (แสดง SnackBar แล้วให้ clear ด้วย [ClearPaymentError])
+  final String? paymentErrorMessage;
 
   const PosCartLoaded({
     required this.items,
     this.selectedMember,
     this.earnedPoints = 0,
     this.billDiscount = 0,
+    this.paymentErrorMessage,
   });
 
   int get itemCount => items.fold(0, (sum, i) => sum + i.quantity);
@@ -60,15 +63,21 @@ class PosCartLoaded extends PosState {
     MemberModel? selectedMember,
     int? earnedPoints,
     double? billDiscount,
+    String? paymentErrorMessage,
     bool clearMember = false,
+    bool clearPaymentError = false,
   }) =>
       PosCartLoaded(
         items: items ?? this.items,
         selectedMember: clearMember ? null : (selectedMember ?? this.selectedMember),
         earnedPoints: earnedPoints ?? this.earnedPoints,
         billDiscount: billDiscount ?? this.billDiscount,
+        paymentErrorMessage: clearPaymentError
+            ? null
+            : (paymentErrorMessage ?? this.paymentErrorMessage),
       );
 
   @override
-  List<Object?> get props => [items, selectedMember, earnedPoints, billDiscount];
+  List<Object?> get props =>
+      [items, selectedMember, earnedPoints, billDiscount, paymentErrorMessage];
 }

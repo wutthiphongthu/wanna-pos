@@ -187,10 +187,22 @@ class ProductRepositoryFirebaseImpl implements ProductRepository {
         (list) {
           final term = searchTerm.toLowerCase();
           final filtered = list
-              .where((p) =>
-                  p.name.toLowerCase().contains(term) ||
-                  p.productCode.toLowerCase().contains(term) ||
-                  (p.barcode?.toLowerCase().contains(term) ?? false))
+              .where((p) {
+                if (p.name.toLowerCase().contains(term)) return true;
+                if (p.productCode.toLowerCase().contains(term)) return true;
+                if (p.barcode != null && p.barcode!.toLowerCase().contains(term)) {
+                  return true;
+                }
+                if (p.productSubname != null &&
+                    p.productSubname!.toLowerCase().contains(term)) {
+                  return true;
+                }
+                if (p.customBarcodeId != null &&
+                    p.customBarcodeId!.toLowerCase().contains(term)) {
+                  return true;
+                }
+                return false;
+              })
               .toList();
           return Right(filtered);
         },

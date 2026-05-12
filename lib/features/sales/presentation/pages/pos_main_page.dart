@@ -37,12 +37,24 @@ class POSMainPageView extends StatefulWidget {
 }
 
 class _POSMainPageViewState extends State<POSMainPageView> {
+  late final TextEditingController _searchController;
+
   @override
   void initState() {
     super.initState();
+    _searchController = TextEditingController();
+    _searchController.addListener(() {
+      if (mounted) setState(() {});
+    });
     context.read<ProductBloc>().add(const LoadActiveProducts());
     // แสดง popup เลือกลูกค้าก่อนเสมอ — ถ้าไม่ใส่ลูกค้าสามารถปิดแล้วขายต่อได้
     WidgetsBinding.instance.addPostFrameCallback((_) => _showSelectCustomerOnce());
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   /// แสดง dialog เลือกลูกค้าครั้งเดียวเมื่อเข้าหน้าขาย (ปิดได้โดยไม่เลือกเพื่อขายแบบไม่ระบุลูกค้า)
@@ -60,7 +72,10 @@ class _POSMainPageViewState extends State<POSMainPageView> {
       child: SafeArea(
         child: Column(
           children: [
-            POSHeader(onMenuTap: widget.onMenuTap),
+            POSHeader(
+              onMenuTap: widget.onMenuTap,
+              searchController: _searchController,
+            ),
             Expanded(
               child: Row(
                 children: [
@@ -68,7 +83,7 @@ class _POSMainPageViewState extends State<POSMainPageView> {
                     flex: 2,
                     child: Container(
                       color: Colors.white,
-                      child: const ProductGrid(),
+                      child: ProductGrid(searchQuery: _searchController.text),
                     ),
                   ),
                   const Expanded(

@@ -2,19 +2,24 @@ import 'package:flutter/material.dart';
 
 class POSHeader extends StatelessWidget {
   final VoidCallback? onMenuTap;
+  final TextEditingController searchController;
 
-  const POSHeader({super.key, this.onMenuTap});
+  const POSHeader({
+    super.key,
+    this.onMenuTap,
+    required this.searchController,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-        height: 70,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, 2),
@@ -23,15 +28,11 @@ class POSHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Menu Icon
           IconButton(
             onPressed: onMenuTap,
             icon: const Icon(Icons.menu, size: 28),
           ),
-
           const SizedBox(width: 16),
-
-          // Logo
           Text(
             'Lorem',
             style: TextStyle(
@@ -40,10 +41,7 @@ class POSHeader extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
-
           const SizedBox(width: 32),
-
-          // Search Bar
           Expanded(
             child: Container(
               height: 48,
@@ -51,21 +49,36 @@ class POSHeader extends StatelessWidget {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search products...',
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                ),
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: searchController,
+                builder: (context, value, _) {
+                  return TextField(
+                    controller: searchController,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'ค้นหาชื่อสินค้า รหัส หรือบาร์โค้ด...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: value.text.isNotEmpty
+                          ? IconButton(
+                              tooltip: 'ล้าง',
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                searchController.clear();
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
-
           const SizedBox(width: 24),
-
-          // Dine In Status
           Builder(
             builder: (context) {
               final scheme = Theme.of(context).colorScheme;

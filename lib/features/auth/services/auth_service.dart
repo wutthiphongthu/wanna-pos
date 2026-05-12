@@ -140,6 +140,19 @@ class AuthService implements IAuthService {
     return {'success': false, 'message': 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'};
   }
 
+  @override
+  @override
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    String displayName = '',
+  }) async {
+    return {
+      'success': false,
+      'message': 'โหมดทดสอบไม่รองรับการสมัคร — ใช้บัญชี admin/cashier หรือล็อกอินด้วย Firebase',
+    };
+  }
+
   // ทำการ logout
   Future<void> logout() async {
     await _storageService.remove(AppConstants.tokenKey);

@@ -5,16 +5,75 @@ import '../../sales/data/sales_repository_interface.dart';
 import '../../sales/services/sale_detail_dto.dart';
 import '../../../database/entities/sale_entity.dart';
 
+/// แยกยอด/จำนวนบิลตามช่องทางชำระ (ค่าใน DB เป็น cash / transfer / mixed)
+class DashboardPaymentBreakdown {
+  final int cashBills;
+  final double cashAmount;
+  final int transferBills;
+  final double transferAmount;
+  final int mixedBills;
+  final double mixedAmount;
+  final int otherBills;
+  final double otherAmount;
+
+  const DashboardPaymentBreakdown({
+    this.cashBills = 0,
+    this.cashAmount = 0,
+    this.transferBills = 0,
+    this.transferAmount = 0,
+    this.mixedBills = 0,
+    this.mixedAmount = 0,
+    this.otherBills = 0,
+    this.otherAmount = 0,
+  });
+
+  static DashboardPaymentBreakdown fromSales(Iterable<SaleEntity> sales) {
+    var cb = 0, tb = 0, mb = 0, ob = 0;
+    var ca = 0.0, ta = 0.0, ma = 0.0, oa = 0.0;
+    for (final s in sales) {
+      switch (s.paymentMethod.toLowerCase()) {
+        case 'cash':
+          cb++;
+          ca += s.totalAmount;
+          break;
+        case 'transfer':
+          tb++;
+          ta += s.totalAmount;
+          break;
+        case 'mixed':
+          mb++;
+          ma += s.totalAmount;
+          break;
+        default:
+          ob++;
+          oa += s.totalAmount;
+      }
+    }
+    return DashboardPaymentBreakdown(
+      cashBills: cb,
+      cashAmount: ca,
+      transferBills: tb,
+      transferAmount: ta,
+      mixedBills: mb,
+      mixedAmount: ma,
+      otherBills: ob,
+      otherAmount: oa,
+    );
+  }
+}
+
 /// สรุปยอดขายสำหรับ dashboard
 class DashboardSalesSummary {
   final double totalAmount;
   final int billCount;
   final double averagePerBill;
+  final DashboardPaymentBreakdown paymentBreakdown;
 
   const DashboardSalesSummary({
     required this.totalAmount,
     required this.billCount,
     this.averagePerBill = 0,
+    this.paymentBreakdown = const DashboardPaymentBreakdown(),
   });
 }
 
@@ -51,7 +110,11 @@ class DashboardSalesService {
   ) async {
     final result = await _salesRepo.getSalesByDateRange(storeId, start, end);
     return result.fold(
-      (_) => const DashboardSalesSummary(totalAmount: 0, billCount: 0),
+      (_) => const DashboardSalesSummary(
+        totalAmount: 0,
+        billCount: 0,
+        paymentBreakdown: DashboardPaymentBreakdown(),
+      ),
       (sales) {
         final total = sales.fold<double>(0, (sum, s) => sum + s.totalAmount);
         final count = sales.length;
@@ -60,6 +123,7 @@ class DashboardSalesService {
           totalAmount: total,
           billCount: count,
           averagePerBill: avg,
+          paymentBreakdown: DashboardPaymentBreakdown.fromSales(sales),
         );
       },
     );

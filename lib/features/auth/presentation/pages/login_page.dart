@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/auth_bloc.dart';
 import '../../bloc/auth_event.dart';
 import '../../bloc/auth_state.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -37,6 +38,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (prev, curr) {
+        final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+        if (!isCurrent && (curr is AuthLoading || curr is AuthError)) {
+          return false;
+        }
+        return true;
+      },
       listener: (context, state) {
         if (state is AuthLoading) {
           setState(() {
@@ -248,6 +256,21 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     ),
                             ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          TextButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => const RegisterPage(),
+                                      ),
+                                    );
+                                  },
+                            child: const Text('สมัครสมาชิก'),
                           ),
 
                           const SizedBox(height: 16),

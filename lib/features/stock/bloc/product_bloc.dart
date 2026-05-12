@@ -101,23 +101,20 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       return;
     }
 
+    if (state is! ProductLoaded) {
+      // หลีกเลี่ยง emit รายการว่างเมื่อยังโหลดไม่เสร็จ (เช่น พิมพ์ค้นหาเร็วเกินไป)
+      return;
+    }
+
+    final loaded = state as ProductLoaded;
     final result = await _searchProducts(event.searchTerm);
     result.fold(
       (failure) => emit(ProductError(failure.message)),
       (searchResults) {
-        if (state is ProductLoaded) {
-          final currentState = state as ProductLoaded;
-          emit(currentState.copyWith(
-            searchResults: searchResults,
-            searchTerm: event.searchTerm,
-          ));
-        } else {
-          emit(ProductLoaded(
-            products: [],
-            searchResults: searchResults,
-            searchTerm: event.searchTerm,
-          ));
-        }
+        emit(loaded.copyWith(
+          searchResults: searchResults,
+          searchTerm: event.searchTerm,
+        ));
       },
     );
   }
